@@ -372,14 +372,11 @@
   <!-- 凭据输入弹窗 -->
   <div id="config-overlay" class="modal-overlay">
     <div class="config-modal">
-      <h2>API 凭据配置</h2>
+      <h2>配置凭据</h2>
       <div class="config-field">
-        <label>API Key</label>
-        <input type="password" id="modal-api-key" placeholder="输入 sk-...">
-      </div>
-      <div class="config-field">
-        <label>App ID</label>
-        <input type="text" id="modal-app-id" placeholder="输入App ID">
+        <label>凭据字符串</label>
+        <input type="password" id="modal-combined-config" placeholder="格式：AppID|AppKey">
+        <p style="font-size: 0.75rem; color: #6b7280; margin-top: 0.5rem;">请使用 | 符号分隔 AppID 和 API Key</p>
       </div>
       <div class="modal-btns">
         <button class="save-btn" onclick="saveConfig()">保存并进入</button>
@@ -396,8 +393,7 @@
     };
 
     const configOverlay = document.getElementById('config-overlay');
-    const modalApiKey = document.getElementById('modal-api-key');
-    const modalAppId = document.getElementById('modal-app-id');
+    const modalCombinedConfig = document.getElementById('modal-combined-config');
 
     // 初始化检查配置
     window.addEventListener('load', () => {
@@ -412,11 +408,17 @@
     });
 
     function saveConfig() {
-      const key = modalApiKey.value.trim();
-      const id = modalAppId.value.trim();
+      const combined = modalCombinedConfig.value.trim();
 
-      if (!key || !id) {
-        alert('请填写完整信息');
+      if (!combined.includes('|')) {
+        alert('请输入正确格式：AppID|AppKey');
+        return;
+      }
+
+      const [id, key] = combined.split('|').map(s => s.trim());
+
+      if (!id || !key) {
+        alert('解析失败，请确保格式正确');
         return;
       }
 
