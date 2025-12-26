@@ -1,11 +1,682 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
-  <meta charset="UTF-8" />
-  <title>我的第一个 GitHub Pages</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>百炼智能对话</title>
+  <!-- 引入 Markdown 渲染库 -->
+  <script src="https://cdn.jsdelivr.net/npm/markdown-it@13.0.1/dist/markdown-it.min.js"></script>
+  <!-- 引入代码高亮库 -->
+  <link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-javascript.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
+  <style>
+    :root {
+      --primary-color: #4f46e5;
+      --bg-color: #f9fafb;
+      --chat-bg: #ffffff;
+      --user-msg-bg: #4f46e5;
+      --user-msg-text: #ffffff;
+      --ai-msg-bg: #f3f4f6;
+      --ai-msg-text: #1f2937;
+      --input-bg: rgba(255, 255, 255, 0.8);
+      --border-color: #e5e7eb;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--bg-color);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Header 样式 */
+    header {
+      padding: 1rem 2rem;
+      background: white;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 10;
+    }
+
+    header h1 {
+      font-size: 1.25rem;
+      color: var(--primary-color);
+      font-weight: 700;
+    }
+
+    /* 聊天区域 */
+    #chat-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      scroll-behavior: smooth;
+    }
+
+    .message {
+      max-width: 85%;
+      padding: 1rem 1.25rem;
+      border-radius: 1rem;
+      line-height: 1.6;
+      position: relative;
+      animation: fadeIn 0.3s ease;
+      font-size: 1rem;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .user-message {
+      align-self: flex-end;
+      background-color: var(--user-msg-bg);
+      color: var(--user-msg-text);
+      border-bottom-right-radius: 0.25rem;
+      box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.1);
+    }
+
+    .ai-message {
+      align-self: flex-start;
+      background-color: var(--ai-msg-bg);
+      color: var(--ai-msg-text);
+      border-bottom-left-radius: 0.25rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Markdown 样式微调 */
+    .ai-message pre {
+      background: #2d2d2d;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      overflow-x: auto;
+      margin: 0.5rem 0;
+    }
+
+    .ai-message code {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.9em;
+    }
+
+    /* 思考过程折叠样式 */
+    .thought-details {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 0.5rem;
+      margin-bottom: 1rem;
+      overflow: hidden;
+    }
+
+    .thought-details summary {
+      padding: 0.5rem 1rem;
+      background: #f1f5f9;
+      cursor: pointer;
+      font-size: 0.875rem;
+      color: #64748b;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 600;
+      user-select: none;
+    }
+
+    .thought-details summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .thought-details summary::before {
+      content: "●";
+      color: var(--primary-color);
+      font-size: 0.6rem;
+    }
+
+    .thought-content {
+      padding: 1rem;
+      font-size: 0.9rem;
+      color: #475569;
+      border-top: 1px solid #e2e8f0;
+      line-height: 1.6;
+    }
+
+    /* 表格渲染样式优化 */
+    .ai-message table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1rem 0;
+      font-size: 0.95rem;
+      background: white;
+      border-radius: 0.5rem;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .ai-message th,
+    .ai-message td {
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--border-color);
+      text-align: left;
+    }
+
+    .ai-message th {
+      background-color: #f8fafc;
+      font-weight: 600;
+      color: #475569;
+    }
+
+    .ai-message tr:nth-child(even) {
+      background-color: #f9fafb;
+    }
+
+    .ai-message tr:hover {
+      background-color: #f1f5f9;
+    }
+
+    /* 输入区域 */
+    .input-area {
+      padding: 1.5rem 2rem;
+      background: var(--input-bg);
+      backdrop-filter: blur(10px);
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      gap: 1rem;
+      max-width: 900px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    #user-input {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--border-color);
+      border-radius: 0.75rem;
+      outline: none;
+      transition: border-color 0.2s;
+      font-size: 1rem;
+      resize: none;
+      max-height: 150px;
+    }
+
+    #user-input:focus {
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    }
+
+    #send-btn {
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      padding: 0 1.5rem;
+      border-radius: 0.75rem;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #send-btn:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+
+    #send-btn:disabled {
+      background-color: #9ca3af;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* 滚动条美化 */
+    #chat-container::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    #chat-container::-webkit-scrollbar-thumb {
+      background-color: #d1d5db;
+      border-radius: 3px;
+    }
+
+    /* 移动端适配 */
+    @media (max-width: 640px) {
+      #chat-container {
+        padding: 1rem;
+      }
+
+      .message {
+        max-width: 95%;
+      }
+
+      .input-area {
+        padding: 1rem;
+      }
+    }
+
+    /* 凭据弹窗样式 */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(5px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .config-modal {
+      background: white;
+      padding: 2rem;
+      border-radius: 1rem;
+      width: 90%;
+      max-width: 450px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    }
+
+    .config-modal h2 {
+      margin-bottom: 1.5rem;
+      font-size: 1.25rem;
+      color: var(--primary-color);
+    }
+
+    .config-field {
+      margin-bottom: 1.25rem;
+    }
+
+    .config-field label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #374151;
+    }
+
+    .config-field input {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid var(--border-color);
+      border-radius: 0.5rem;
+      outline: none;
+    }
+
+    .modal-btns {
+      display: flex;
+      justify-content: flex-end;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .save-btn {
+      background: var(--primary-color);
+      color: white;
+      border: none;
+      padding: 0.6rem 1.5rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      font-weight: 600;
+    }
+  </style>
 </head>
+
 <body>
-  <h1>🎉 GitHub Pages 部署成功！</h1>
-  <p>这是一个免费托管的网页</p>
+
+  <header>
+    <h1>百炼智能助手</h1>
+  </header>
+
+  <main id="chat-container">
+    <!-- 消息将在此动态生成 -->
+    <div class="message ai-message">你好！我是你的智能助手。今天有什么我可以帮你的吗？</div>
+  </main>
+
+  <div class="input-area">
+    <textarea id="user-input" placeholder="输入您的问题..." rows="1"></textarea>
+    <button id="send-btn">发送</button>
+  </div>
+
+  <!-- 凭据输入弹窗 -->
+  <div id="config-overlay" class="modal-overlay">
+    <div class="config-modal">
+      <h2>API 凭据配置</h2>
+      <div class="config-field">
+        <label>API Key</label>
+        <input type="password" id="modal-api-key" placeholder="输入 sk-...">
+      </div>
+      <div class="config-field">
+        <label>App ID</label>
+        <input type="text" id="modal-app-id" placeholder="输入百炼 App ID">
+      </div>
+      <div class="modal-btns">
+        <button class="save-btn" onclick="saveConfig()">保存并进入</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 配置信息（动态获取）
+    let CONFIG = {
+      apiKey: '',
+      appId: '',
+      endpoint: ''
+    };
+
+    const configOverlay = document.getElementById('config-overlay');
+    const modalApiKey = document.getElementById('modal-api-key');
+    const modalAppId = document.getElementById('modal-app-id');
+
+    // 初始化检查配置
+    window.addEventListener('load', () => {
+      const savedKey = localStorage.getItem('bailian_api_key');
+      const savedId = localStorage.getItem('bailian_app_id');
+
+      if (savedKey && savedId) {
+        applyConfig(savedKey, savedId);
+      } else {
+        configOverlay.classList.add('active');
+      }
+    });
+
+    function saveConfig() {
+      const key = modalApiKey.value.trim();
+      const id = modalAppId.value.trim();
+
+      if (!key || !id) {
+        alert('请填写完整信息');
+        return;
+      }
+
+      localStorage.setItem('bailian_api_key', key);
+      localStorage.setItem('bailian_app_id', id);
+      applyConfig(key, id);
+      configOverlay.classList.remove('active');
+    }
+
+    function applyConfig(key, id) {
+      CONFIG.apiKey = key;
+      CONFIG.appId = id;
+      CONFIG.endpoint = `https://dashscope.aliyuncs.com/api/v1/apps/${id}/completion`;
+    }
+
+    const chatContainer = document.getElementById('chat-container');
+    const userInput = document.getElementById('user-input');
+    const sendBtn = document.getElementById('send-btn');
+    const md = window.markdownit({
+      html: true,
+      linkify: true,
+      typographer: true,
+      highlight: function (str, lang) {
+        if (lang && Prism.languages[lang]) {
+          try {
+            return Prism.highlight(str, Prism.languages[lang], lang);
+          } catch (__) { }
+        }
+        return ''; // 使用默认环绕
+      }
+    });
+
+    // 自动调整输入框高度
+    userInput.addEventListener('input', function () {
+      this.style.height = 'auto';
+      this.style.height = (this.scrollHeight) + 'px';
+    });
+
+    // 辅助：智能内容渲染（处理 raw JSON 转表格）
+    function renderContent(rawText) {
+      if (!rawText) return '';
+      const trimmed = rawText.trim();
+
+      // 如果已经是 Markdown 格式（含有标题、代码块、列表等标记），直接渲染
+      if (/^#|```|^\s*[-*+]|^\s*\d+\.|^\|/.test(trimmed)) {
+        return md.render(rawText);
+      }
+
+      // 尝试解析为 JSON 并转表格
+      try {
+        if ((trimmed.startsWith('[') && trimmed.endsWith(']')) || (trimmed.startsWith('{') && trimmed.endsWith('}'))) {
+          const data = JSON.parse(trimmed);
+          // 如果是对象数组，转表格
+          if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'object') {
+            let html = '<table><thead><tr>';
+            const keys = Object.keys(data[0]);
+            keys.forEach(k => html += `<th>${k}</th>`);
+            html += '</tr></thead><tbody>';
+            data.forEach(row => {
+              html += '<tr>';
+              keys.forEach(k => html += `<td>${row[k] === undefined ? '' : row[k]}</td>`);
+              html += '</tr>';
+            });
+            html += '</tbody></table>';
+            return html;
+          }
+          // 如果是普通 JSON 对象，转代码块
+          return md.render('```json\n' + JSON.stringify(data, null, 2) + '\n```');
+        }
+      } catch (e) {
+        // 解析失败则按常规 Markdown 处理
+      }
+
+      return md.render(rawText);
+    }
+
+    // 辅助：递归寻找 JSON 中的所有文本内容
+    function extractActualContent(obj) {
+      if (!obj) return { text: '', thought: '' };
+      let res = { text: '', thought: '' };
+
+      const walk = (o) => {
+        if (!o || typeof o !== 'object') return;
+
+        // 捕获思考过程
+        if (o.thought || o.reasoning_content) {
+          res.thought = o.thought || o.reasoning_content;
+        }
+
+        // 捕获正文
+        if (typeof o.text === 'string' && o.text) res.text = o.text;
+        if (typeof o.content === 'string' && o.content) res.text = o.content;
+
+        // 递归 choices
+        if (Array.isArray(o.choices)) {
+          o.choices.forEach(c => {
+            if (c.delta) walk(c.delta);
+            if (c.message) walk(c.message);
+            if (typeof c.text === 'string') res.text = c.text;
+          });
+        }
+
+        // 递归 results (Workflow 模式)
+        if (Array.isArray(o.results)) o.results.forEach(walk);
+
+        // 通用递归
+        for (let k in o) {
+          if (k !== 'text' && k !== 'content' && typeof o[k] === 'object') walk(o[k]);
+        }
+      };
+
+      walk(obj);
+      return res;
+    }
+
+    // 发送消息
+    async function sendMessage() {
+      const text = userInput.value.trim();
+      if (!text) return;
+
+      appendMessage('user', text);
+      userInput.value = '';
+      userInput.style.height = 'auto';
+      setLoading(true);
+
+      const aiMsgDiv = appendMessage('ai', '正在连接...');
+      let fullText = '';
+      let fullThought = '';
+      let buffer = '';
+
+      try {
+        const response = await fetch(CONFIG.endpoint, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${CONFIG.apiKey}`,
+            'Content-Type': 'application/json',
+            'X-DashScope-SSE': 'enable'
+          },
+          body: JSON.stringify({
+            input: {
+              // 兼容性更强的输入结构
+              messages: [{ role: 'user', content: text }]
+            },
+            parameters: {
+              incremental_output: true,
+              has_thoughts: true
+            }
+          })
+        });
+
+        if (!response.ok) {
+          const err = await response.text();
+          throw new Error(`API 报错 (${response.status}): ${err.substring(0, 100)}`);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop();
+
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed.startsWith('data:')) continue;
+
+            try {
+              const dataStr = trimmed.substring(5).trim();
+              if (dataStr === '[DONE]') break;
+
+              const data = JSON.parse(dataStr);
+              const found = extractActualContent(data.output || data);
+
+              if (found.text) {
+                // 自适应累加逻辑：判断返回的是增量还是全量
+                if (found.text.length > fullText.length && found.text.startsWith(fullText)) {
+                  fullText = found.text; // 全量覆盖
+                } else if (!fullText.endsWith(found.text)) {
+                  fullText += found.text; // 增量累加
+                }
+              }
+              if (found.thought) {
+                // 同样的逻辑处理思考内容
+                if (found.thought.length > fullThought.length && found.thought.startsWith(fullThought)) {
+                  fullThought = found.thought;
+                } else if (!fullThought.endsWith(found.thought)) {
+                  fullThought += found.thought;
+                }
+              }
+
+              if (fullText || fullThought) {
+                let html = '';
+                if (fullThought) {
+                  html += `
+                        <details class="thought-details" open>
+                            <summary>思考过程</summary>
+                            <div class="thought-content">${md.render(fullThought)}</div>
+                        </details>`;
+                }
+                if (fullText) {
+                  html += renderContent(fullText);
+                } else if (fullThought) {
+                  html += '<p><i>正在组织语言...</i></p>';
+                }
+                aiMsgDiv.innerHTML = html;
+                Prism.highlightAllUnder(aiMsgDiv);
+                scrollToBottom();
+              }
+            } catch (e) {
+              console.warn('解析包失败', e);
+            }
+          }
+        }
+
+        if (!fullText && !fullThought) {
+          aiMsgDiv.innerHTML = '<span style="color:red">API 已响应但未检测到文字。请检查百炼后台“应用详情”确保应用已发布且有输出内容。</span>';
+        }
+
+      } catch (error) {
+        aiMsgDiv.innerHTML = `<span style="color:red">错误: ${error.message}</span>`;
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    function appendMessage(role, text) {
+      const div = document.createElement('div');
+      div.className = `message ${role}-message`;
+      if (role === 'ai') {
+        div.innerHTML = md.render(text);
+      } else {
+        div.textContent = text;
+      }
+      chatContainer.appendChild(div);
+      scrollToBottom();
+      return div;
+    }
+
+    function scrollToBottom() {
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    function setLoading(isLoading) {
+      sendBtn.disabled = isLoading;
+      sendBtn.textContent = isLoading ? '思考中...' : '发送';
+    }
+
+    sendBtn.addEventListener('click', sendMessage);
+    userInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+  </script>
+
 </body>
+
 </html>
