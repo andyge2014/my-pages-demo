@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Agents智能对话 - 多Agent门户</title>
+  <title>NEXUS // AGENTS</title>
   <!-- 引入 Markdown 渲染库 -->
   <script src="https://cdn.jsdelivr.net/npm/markdown-it@13.0.1/dist/markdown-it.min.js"></script>
   <!-- 引入代码高亮库 -->
@@ -15,175 +15,245 @@
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@400;500;700;900&display=swap');
+
     :root {
-      --primary-color: #4f46e5;
-      --primary-hover: #4338ca;
-      --bg-color: #f9fafb;
-      --chat-bg: #ffffff;
-      --user-msg-bg: #4f46e5;
-      --user-msg-text: #ffffff;
-      --ai-msg-bg: #f3f4f6;
-      --ai-msg-text: #1f2937;
-      --input-bg: rgba(255, 255, 255, 0.8);
-      --border-color: #e5e7eb;
-      --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-      --card-shadow-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      --neon-cyan: #00ffff;
+      --neon-blue: #00bfff;
+      --neon-purple: #bf00ff;
+      --bg-dark: #0a0a0f;
+      --bg-darker: #050508;
+      --grid-line: rgba(0, 255, 255, 0.03);
+      --border-glow: rgba(0, 255, 255, 0.3);
     }
 
     * {
-      box-sizing: border-box;
       margin: 0;
       padding: 0;
+      box-sizing: border-box;
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      background-color: var(--bg-color);
+      font-family: 'JetBrains Mono', monospace;
+      background: var(--bg-dark);
+      color: var(--neon-cyan);
       height: 100vh;
-      display: flex;
-      flex-direction: column;
       overflow: hidden;
+      position: relative;
     }
 
-    /* ==================== 页面容器 ==================== */
+    /* 扫描线背景 */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background:
+        linear-gradient(90deg, transparent 50%, rgba(0, 255, 255, 0.02) 50%, transparent 100%),
+        linear-gradient(0deg, transparent 50%, rgba(0, 255, 255, 0.02) 50%, transparent 100%);
+      background-size: 50px 50px;
+      animation: scan 8s linear infinite;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    @keyframes scan {
+      0% { background-position: 0 0, 0 0; }
+      100% { background-position: 50px 50px, 50px 50px; }
+    }
+
+    /* 网格背景 */
+    .grid-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image:
+        linear-gradient(var(--grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* 页面容器 */
     .page {
       display: none;
       height: 100vh;
-      flex-direction: column;
+      position: relative;
+      z-index: 10;
     }
 
     .page.active {
       display: flex;
     }
 
-    /* ==================== Header 样式 ==================== */
-    header {
-      padding: 1rem 2rem;
-      background: white;
-      border-bottom: 1px solid var(--border-color);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      z-index: 10;
+    /* 标题全息效果 */
+    .holo-title {
+      font-family: 'Orbitron', monospace;
+      font-size: 2.5rem;
+      font-weight: 900;
+      letter-spacing: 0.3em;
+      text-shadow:
+        0 0 10px var(--neon-cyan),
+        0 0 20px var(--neon-cyan),
+        0 0 40px var(--neon-blue),
+        0 0 80px var(--neon-purple);
+      animation: holoFlicker 3s ease-in-out infinite;
     }
 
-    header h1 {
-      font-size: 1.25rem;
-      color: var(--primary-color);
-      font-weight: 700;
+    @keyframes holoFlicker {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.95; }
     }
 
-    .btn {
-      padding: 0.5rem 1rem;
-      border: none;
-      border-radius: 0.5rem;
-      cursor: pointer;
-      font-weight: 500;
-      transition: all 0.2s;
-      font-size: 0.875rem;
-    }
-
-    .btn-primary {
-      background-color: var(--primary-color);
-      color: white;
-    }
-
-    .btn-primary:hover {
-      background-color: var(--primary-hover);
-    }
-
-    .btn-secondary {
-      background-color: #f3f4f6;
-      color: #374151;
-    }
-
-    .btn-secondary:hover {
-      background-color: #e5e7eb;
-    }
-
-    /* ==================== 凭证输入页面 ==================== */
-    #credential-page {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    }
-
+    /* 凭证页面 */
     #credential-page.active {
       display: flex;
       align-items: center;
       justify-content: center;
+      flex-direction: column;
+      background: radial-gradient(ellipse at center, rgba(0, 255, 255, 0.05) 0%, transparent 70%);
     }
 
-    .credential-card {
-      background: white;
-      padding: 3rem;
-      border-radius: 1.5rem;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    .credential-container {
+      max-width: 600px;
       width: 90%;
-      max-width: 500px;
+      position: relative;
+      z-index: 10;
     }
 
-    .credential-card h1 {
-      font-size: 1.75rem;
-      color: var(--primary-color);
-      margin-bottom: 1.5rem;
-      text-align: center;
+    .credential-container::before {
+      content: '';
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      right: -2px;
+      bottom: -2px;
+      background: linear-gradient(45deg, var(--neon-cyan), var(--neon-purple), var(--neon-blue), var(--neon-cyan));
+      opacity: 0.5;
+      filter: blur(10px);
+      z-index: -1;
+      animation: glowPulse 3s ease-in-out infinite;
     }
 
-    .form-group {
-      margin-bottom: 1.5rem;
+    @keyframes glowPulse {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 0.6; }
     }
 
-    .form-group label {
-      display: block;
-      margin-bottom: 0.5rem;
-      font-size: 0.875rem;
-      font-weight: 600;
-      color: #374151;
-    }
-
-    .form-group input {
-      width: 100%;
-      padding: 0.75rem;
-      border: 1px solid var(--border-color);
-      border-radius: 0.5rem;
-      outline: none;
-      font-size: 1rem;
-    }
-
-    .form-group input:focus {
-      border-color: var(--primary-color);
-      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
-    }
-
-    .form-help {
+    .credential-label {
+      font-family: 'Orbitron', monospace;
       font-size: 0.75rem;
-      color: #6b7280;
-      margin-top: 0.5rem;
+      letter-spacing: 0.2em;
+      color: var(--neon-blue);
+      margin-bottom: 1rem;
+      text-transform: uppercase;
     }
 
-    .save-btn {
+    .cyber-input {
       width: 100%;
-      padding: 0.75rem;
-      background: var(--primary-color);
-      color: white;
-      border: none;
-      border-radius: 0.5rem;
+      padding: 1rem;
+      background: rgba(0, 0, 0, 0.8);
+      border: 2px solid var(--border-glow);
+      color: var(--neon-cyan);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.875rem;
+      outline: none;
+      transition: all 0.3s;
+      position: relative;
+    }
+
+    .cyber-input:focus {
+      border-color: var(--neon-cyan);
+      box-shadow:
+        0 0 20px rgba(0, 255, 255, 0.3),
+        inset 0 0 20px rgba(0, 255, 255, 0.1);
+    }
+
+    .cyber-input::placeholder {
+      color: rgba(0, 255, 255, 0.3);
+    }
+
+    .help-text {
+      font-size: 0.7rem;
+      color: rgba(0, 255, 255, 0.5);
+      margin-top: 0.75rem;
+      line-height: 1.6;
+    }
+
+    .help-text code {
+      background: rgba(0, 255, 255, 0.1);
+      padding: 0.125rem 0.25rem;
+      font-family: 'Orbitron', monospace;
+      font-size: 0.65rem;
+    }
+
+    .cyber-btn {
+      margin-top: 1.5rem;
+      width: 100%;
+      padding: 1rem;
+      background: transparent;
+      border: 2px solid var(--neon-cyan);
+      color: var(--neon-cyan);
+      font-family: 'Orbitron', monospace;
+      font-size: 0.875rem;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
       cursor: pointer;
-      font-weight: 600;
-      font-size: 1rem;
-      transition: all 0.2s;
+      position: relative;
+      z-index: 10;
+      transition: all 0.3s;
     }
 
-    .save-btn:hover {
-      background: var(--primary-hover);
+    .cyber-btn > * {
+      position: relative;
+      z-index: 11;
     }
 
-    /* ==================== Agent 门户页面 ==================== */
-    #portal-page {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    .cyber-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.3), transparent);
+      transition: left 0.5s;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .cyber-btn:hover {
+      background: rgba(0, 255, 255, 0.1);
+      box-shadow:
+        0 0 30px rgba(0, 255, 255, 0.5),
+        inset 0 0 20px rgba(0, 255, 255, 0.2);
+      text-shadow: 0 0 10px var(--neon-cyan);
+    }
+
+    .cyber-btn:hover::before {
+      left: 100%;
+    }
+
+    /* 门户页面 */
+    #portal-page.active {
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-darker);
     }
 
     .portal-header {
-      background: rgba(255, 255, 255, 0.95);
+      padding: 1.5rem 2rem;
+      border-bottom: 1px solid var(--grid-line);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(10, 10, 15, 0.9);
       backdrop-filter: blur(10px);
     }
 
@@ -194,29 +264,48 @@
     }
 
     .search-section {
-      max-width: 900px;
-      margin: 0 auto 2rem;
-      background: white;
+      max-width: 800px;
+      margin: 0 auto 3rem;
       padding: 1.5rem;
-      border-radius: 1rem;
-      box-shadow: var(--card-shadow);
+      border: 1px solid var(--border-glow);
+      position: relative;
+      background: rgba(0, 0, 0, 0.6);
+    }
+
+    .search-section::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+      animation: scanLine 2s ease-in-out infinite;
+    }
+
+    @keyframes scanLine {
+      0%, 100% { opacity: 0; }
+      50% { opacity: 1; }
     }
 
     .search-box {
       width: 100%;
-      padding: 0.75rem 1rem;
-      border: 2px solid var(--border-color);
-      border-radius: 0.5rem;
-      font-size: 1rem;
+      padding: 0.875rem;
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid var(--border-glow);
+      color: var(--neon-cyan);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.875rem;
       outline: none;
-      transition: border-color 0.2s;
+      transition: all 0.3s;
     }
 
     .search-box:focus {
-      border-color: var(--primary-color);
+      border-color: var(--neon-cyan);
+      box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
     }
 
-    .filter-section {
+    .filter-bar {
       display: flex;
       gap: 0.5rem;
       margin-top: 1rem;
@@ -225,136 +314,186 @@
 
     .filter-chip {
       padding: 0.5rem 1rem;
-      background: #f3f4f6;
-      border: none;
-      border-radius: 2rem;
+      background: transparent;
+      border: 1px solid var(--border-glow);
+      color: rgba(0, 255, 255, 0.7);
+      font-family: 'Orbitron', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
       cursor: pointer;
-      font-size: 0.875rem;
-      transition: all 0.2s;
+      transition: all 0.3s;
     }
 
     .filter-chip:hover {
-      background: #e5e7eb;
+      border-color: var(--neon-cyan);
+      color: var(--neon-cyan);
     }
 
     .filter-chip.active {
-      background: var(--primary-color);
-      color: white;
+      background: rgba(0, 255, 255, 0.1);
+      border-color: var(--neon-cyan);
+      color: var(--neon-cyan);
+      box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
     }
 
-    .agents-grid {
+    /* Agent 网格 - 去卡片化 */
+    .agents-container {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 1.5rem;
-      max-width: 1200px;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 0;
+      max-width: 1400px;
       margin: 0 auto;
     }
 
-    .agent-card {
-      background: white;
-      border-radius: 1rem;
-      padding: 1.5rem;
-      box-shadow: var(--card-shadow);
-      cursor: pointer;
-      transition: all 0.3s ease;
+    .agent-item {
+      padding: 2rem;
+      border: 1px solid var(--grid-line);
+      border-right: none;
+      border-bottom: none;
       position: relative;
-      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.3s;
+      background: rgba(0, 0, 0, 0.3);
     }
 
-    .agent-card:hover {
-      transform: translateY(-4px);
-      box-shadow: var(--card-shadow-hover);
+    .agent-item:last-child {
+      border-right: 1px solid var(--grid-line);
+    }
+
+    .agent-item::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 0;
+      height: 2px;
+      background: var(--neon-cyan);
+      transition: width 0.3s;
+    }
+
+    .agent-item:hover {
+      background: rgba(0, 255, 255, 0.03);
+    }
+
+    .agent-item:hover::before {
+      width: 100%;
+    }
+
+    .agent-number {
+      font-family: 'Orbitron', monospace;
+      font-size: 2.5rem;
+      font-weight: 900;
+      color: rgba(0, 255, 255, 0.1);
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      line-height: 1;
     }
 
     .agent-icon {
-      font-size: 3rem;
+      font-size: 2rem;
       margin-bottom: 1rem;
+      filter: drop-shadow(0 0 10px var(--neon-purple));
     }
 
     .agent-name {
-      font-size: 1.25rem;
+      font-family: 'Orbitron', monospace;
+      font-size: 1rem;
       font-weight: 700;
-      color: #1f2937;
+      color: var(--neon-cyan);
       margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
     }
 
     .agent-type {
-      display: inline-block;
-      padding: 0.25rem 0.75rem;
-      background: #e0e7ff;
-      color: var(--primary-color);
-      border-radius: 1rem;
-      font-size: 0.75rem;
-      font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--neon-purple);
       margin-bottom: 0.75rem;
+      letter-spacing: 0.1em;
     }
 
-    .agent-description {
-      color: #6b7280;
-      font-size: 0.875rem;
-      line-height: 1.5;
-      margin-bottom: 1rem;
+    .agent-desc {
+      font-size: 0.75rem;
+      color: rgba(0, 255, 255, 0.6);
+      line-height: 1.6;
     }
 
     .agent-status {
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      font-size: 0.75rem;
-      color: #9ca3af;
+      margin-top: 1rem;
+      font-size: 0.65rem;
+      color: rgba(0, 255, 255, 0.4);
     }
 
     .status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: #10b981;
+      width: 6px;
+      height: 6px;
+      background: var(--neon-cyan);
+      animation: pulse 2s ease-in-out infinite;
     }
 
-    /* ==================== 对话页面 ==================== */
-    #chat-page {
-      background: var(--bg-color);
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* 对话页面 */
+    #chat-page.active {
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-darker);
     }
 
     .chat-header {
-      background: white;
       padding: 1rem 2rem;
-      border-bottom: 1px solid var(--border-color);
+      border-bottom: 1px solid var(--grid-line);
       display: flex;
       align-items: center;
       gap: 1rem;
+      background: rgba(10, 10, 15, 0.9);
+      backdrop-filter: blur(10px);
     }
 
     .back-btn {
       background: none;
-      border: none;
-      font-size: 1.5rem;
+      border: 1px solid var(--border-glow);
+      color: var(--neon-cyan);
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       cursor: pointer;
-      color: #6b7280;
-      padding: 0.25rem;
-      border-radius: 0.5rem;
-      transition: all 0.2s;
+      font-family: 'Orbitron', monospace;
+      transition: all 0.3s;
     }
 
     .back-btn:hover {
-      background: #f3f4f6;
-      color: var(--primary-color);
+      border-color: var(--neon-cyan);
+      background: rgba(0, 255, 255, 0.1);
+      box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
     }
 
-    .current-agent-info {
+    .current-agent {
       flex: 1;
     }
 
-    .current-agent-info h2 {
-      font-size: 1.125rem;
-      font-weight: 700;
-      color: #1f2937;
+    .current-agent h2 {
+      font-family: 'Orbitron', monospace;
+      font-size: 1rem;
+      color: var(--neon-cyan);
       margin-bottom: 0.25rem;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
     }
 
-    .current-agent-info p {
-      font-size: 0.875rem;
-      color: #6b7280;
+    .current-agent p {
+      font-size: 0.75rem;
+      color: rgba(0, 255, 255, 0.5);
     }
 
     /* 聊天区域 */
@@ -365,235 +504,208 @@
       display: flex;
       flex-direction: column;
       gap: 1.5rem;
-      scroll-behavior: smooth;
     }
 
     .message {
       max-width: 85%;
-      padding: 1rem 1.25rem;
-      border-radius: 1rem;
-      line-height: 1.6;
+      padding: 1.25rem 1.5rem;
       position: relative;
-      animation: fadeIn 0.3s ease;
-      font-size: 1rem;
+      animation: glitchIn 0.3s ease;
     }
 
-    @keyframes fadeIn {
-      from {
+    @keyframes glitchIn {
+      0% {
         opacity: 0;
-        transform: translateY(10px);
+        transform: translateX(-20px);
       }
-
-      to {
+      100% {
         opacity: 1;
-        transform: translateY(0);
+        transform: translateX(0);
       }
     }
 
     .user-message {
       align-self: flex-end;
-      background-color: var(--user-msg-bg);
-      color: var(--user-msg-text);
-      border-bottom-right-radius: 0.25rem;
-      box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.1);
+      background: rgba(0, 255, 255, 0.1);
+      border-left: 2px solid var(--neon-cyan);
+      color: var(--neon-cyan);
     }
 
     .ai-message {
       align-self: flex-start;
-      background-color: var(--ai-msg-bg);
-      color: var(--ai-msg-text);
-      border-bottom-left-radius: 0.25rem;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+      background: rgba(191, 0, 255, 0.05);
+      border-left: 2px solid var(--neon-purple);
+      color: rgba(0, 255, 255, 0.9);
     }
 
-    /* Markdown 样式微调 */
+    /* Markdown 样式 */
     .ai-message pre {
-      background: #2d2d2d;
+      background: rgba(0, 0, 0, 0.8);
       padding: 1rem;
-      border-radius: 0.5rem;
+      border: 1px solid var(--border-glow);
       overflow-x: auto;
-      margin: 0.5rem 0;
+      margin: 1rem 0;
     }
 
     .ai-message code {
-      font-family: 'Fira Code', monospace;
-      font-size: 0.9em;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85em;
     }
 
-    /* 思考过程折叠样式 */
     .thought-details {
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 0.5rem;
+      border: 1px solid rgba(191, 0, 255, 0.3);
       margin-bottom: 1rem;
       overflow: hidden;
     }
 
     .thought-details summary {
-      padding: 0.5rem 1rem;
-      background: #f1f5f9;
+      padding: 0.75rem 1rem;
+      background: rgba(191, 0, 255, 0.1);
       cursor: pointer;
-      font-size: 0.875rem;
-      color: #64748b;
+      font-family: 'Orbitron', monospace;
+      font-size: 0.7rem;
+      color: var(--neon-purple);
       list-style: none;
       display: flex;
       align-items: center;
-      gap: 0.5rem;
-      font-weight: 600;
-      user-select: none;
+      letter-spacing: 0.1em;
     }
 
     .thought-details summary::-webkit-details-marker {
       display: none;
     }
 
-    .thought-details summary::before {
-      content: "●";
-      color: var(--primary-color);
-      font-size: 0.6rem;
-    }
-
     .thought-content {
       padding: 1rem;
-      font-size: 0.9rem;
-      color: #475569;
-      border-top: 1px solid #e2e8f0;
+      font-size: 0.85rem;
+      color: rgba(0, 255, 255, 0.7);
+      border-top: 1px solid rgba(191, 0, 255, 0.2);
       line-height: 1.6;
     }
 
-    /* 表格渲染样式优化 */
     .ai-message table {
       display: block;
       width: 100%;
       overflow-x: auto;
       border-collapse: collapse;
       margin: 1rem 0;
-      font-size: 0.95rem;
-      background: white;
-      border-radius: 0.5rem;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      font-size: 0.85rem;
     }
 
     .ai-message th,
     .ai-message td {
       padding: 0.75rem 1rem;
-      border: 1px solid var(--border-color);
+      border: 1px solid var(--border-glow);
       text-align: left;
     }
 
     .ai-message th {
-      background-color: #f8fafc;
-      font-weight: 600;
-      color: #475569;
-    }
-
-    .ai-message tr:nth-child(even) {
-      background-color: #f9fafb;
+      background: rgba(0, 255, 255, 0.05);
+      font-family: 'Orbitron', monospace;
+      font-size: 0.7rem;
+      color: var(--neon-cyan);
     }
 
     .ai-message tr:hover {
-      background-color: #f1f5f9;
+      background: rgba(0, 255, 255, 0.02);
     }
 
     /* 输入区域 */
     .input-area {
       padding: 1.5rem 2rem;
-      background: var(--input-bg);
-      backdrop-filter: blur(10px);
-      border-top: 1px solid var(--border-color);
+      border-top: 1px solid var(--grid-line);
       display: flex;
       gap: 1rem;
       max-width: 900px;
       margin: 0 auto;
       width: 100%;
+      background: rgba(10, 10, 15, 0.95);
+      backdrop-filter: blur(10px);
     }
 
     #user-input {
       flex: 1;
-      padding: 0.75rem 1rem;
-      border: 1px solid var(--border-color);
-      border-radius: 0.75rem;
+      padding: 0.875rem;
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid var(--border-glow);
+      color: var(--neon-cyan);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.875rem;
       outline: none;
-      transition: border-color 0.2s;
-      font-size: 1rem;
       resize: none;
-      max-height: 150px;
+      max-height: 120px;
     }
 
     #user-input:focus {
-      border-color: var(--primary-color);
-      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+      border-color: var(--neon-cyan);
+      box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
     }
 
     #send-btn {
-      background-color: var(--primary-color);
-      color: white;
-      border: none;
-      padding: 0 1.5rem;
-      border-radius: 0.75rem;
+      padding: 0 2rem;
+      background: transparent;
+      border: 2px solid var(--neon-cyan);
+      color: var(--neon-cyan);
+      font-family: 'Orbitron', monospace;
+      font-weight: 700;
+      letter-spacing: 0.15em;
       cursor: pointer;
-      font-weight: 600;
-      transition: all 0.2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      transition: all 0.3s;
+      white-space: nowrap;
     }
 
     #send-btn:hover {
-      opacity: 0.9;
-      transform: translateY(-1px);
+      background: rgba(0, 255, 255, 0.2);
+      box-shadow: 0 0 30px rgba(0, 255, 255, 0.4);
     }
 
     #send-btn:disabled {
-      background-color: #9ca3af;
+      opacity: 0.3;
       cursor: not-allowed;
-      transform: none;
     }
 
-    /* 滚动条美化 */
-    #chat-container::-webkit-scrollbar,
-    .portal-content::-webkit-scrollbar {
+    /* 滚动条 */
+    ::-webkit-scrollbar {
       width: 6px;
     }
 
-    #chat-container::-webkit-scrollbar-thumb,
-    .portal-content::-webkit-scrollbar-thumb {
-      background-color: #d1d5db;
-      border-radius: 3px;
+    ::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.3);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--neon-cyan);
+      border-radius: 0;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--neon-blue);
     }
 
     /* 移动端适配 */
     @media (max-width: 640px) {
-      header {
+      .portal-header {
         padding: 1rem;
-      }
-
-      .credential-card {
-        padding: 2rem;
       }
 
       .portal-content {
         padding: 1rem;
       }
 
-      .agents-grid {
+      .agents-container {
         grid-template-columns: 1fr;
-      }
-
-      .search-section {
-        padding: 1rem;
       }
 
       #chat-container {
         padding: 1rem;
       }
 
-      .message {
-        max-width: 95%;
-      }
-
       .input-area {
         padding: 1rem;
+      }
+
+      .message {
+        max-width: 95%;
       }
     }
   </style>
@@ -601,40 +713,43 @@
 
 <body>
 
+  <div class="grid-bg"></div>
+
   <!-- ==================== 凭证输入页面 ==================== -->
-  <div id="credential-page" class="page">
-    <div class="credential-card">
-      <h1>🔑 配置 API 凭证</h1>
-      <div class="form-group">
-        <label>凭证字符串</label>
-        <input type="password" id="credential-input" placeholder="密钥串">
-        <p class="form-help">使用 | 分隔 AppID 和 API Key，使用 ; 分隔多个 Agent</p>
+  <div id="credential-page" class="page active">
+    <div class="credential-container">
+      <h1 class="holo-title" style="text-align: center; margin-bottom: 2rem;">NEXUS</h1>
+
+      <div class="credential-label">// ACCESS CREDENTIAL REQUIRED</div>
+
+      <input type="password" id="credential-input" class="cyber-input" placeholder="AGENT:AppID1,AppID2,AppID3|id-SharedAPIKey" oninput="handleCredentialInput(event)">
+
+      <div class="help-text">
+        FORMAT: AppID1,AppID2,AppID3|SharedAPIKey<br>
+        [PREFIX: AGENT:] [AUTO-REPLACE: id- → sk-]
       </div>
-      <button class="save-btn" onclick="saveCredentials()">保存并进入</button>
+
+      <button class="cyber-btn" onclick="saveCredentials()"><span>INITIALIZE SYSTEM</span></button>
     </div>
   </div>
 
   <!-- ==================== Agent 门户页面 ==================== -->
   <div id="portal-page" class="page">
-    <header class="portal-header">
-      <h1>🤖 Agents智能助手</h1>
-      <div style="display: flex; gap: 0.75rem;">
-        <button class="btn btn-secondary" onclick="resetCredentials()">重新配置凭证</button>
-      </div>
-    </header>
+    <div class="portal-header">
+      <div class="holo-title">NEXUS // AGENTS</div>
+      <button class="cyber-btn" style="width: auto; padding: 0.5rem 1rem; font-size: 0.75rem;" onclick="resetCredentials()">RECONFIGURE</button>
+    </div>
 
     <div class="portal-content">
-      <!-- 搜索和筛选 -->
       <div class="search-section">
-        <input type="text" class="search-box" id="agent-search" placeholder="🔍 搜索 Agent（名称或描述）..." oninput="filterAgents()">
-        <div class="filter-section" id="filter-section">
-          <button class="filter-chip active" onclick="filterByType('all')">全部</button>
+        <input type="text" class="search-box" id="agent-search" placeholder="SEARCH AGENT SYSTEM..." oninput="filterAgents()">
+        <div class="filter-bar" id="filter-section">
+          <button class="filter-chip active" onclick="filterByType('all')">ALL</button>
         </div>
       </div>
 
-      <!-- Agent 卡片网格 -->
-      <div class="agents-grid" id="agents-grid">
-        <!-- Agent 卡片将通过 JavaScript 动态生成 -->
+      <div class="agents-container" id="agents-grid">
+        <!-- Agent 列表动态生成 -->
       </div>
     </div>
   </div>
@@ -643,20 +758,20 @@
   <div id="chat-page" class="page">
     <div class="chat-header">
       <button class="back-btn" onclick="showPage('portal-page')">←</button>
-      <div class="current-agent-info">
-        <h2 id="current-agent-name">Agent 名称</h2>
-        <p id="current-agent-desc">Agent 描述</p>
+      <div class="current-agent">
+        <h2 id="current-agent-name">AGENT NAME</h2>
+        <p id="current-agent-desc">DESCRIPTION</p>
       </div>
-      <button class="btn btn-secondary" onclick="showPage('portal-page')">切换 Agent</button>
+      <button class="cyber-btn" style="width: auto; padding: 0.5rem 1rem; font-size: 0.75rem;" onclick="showPage('portal-page')">SWITCH</button>
     </div>
 
     <main id="chat-container">
-      <!-- 消息将在此动态生成 -->
+      <!-- 消息动态生成 -->
     </main>
 
     <div class="input-area">
-      <textarea id="user-input" placeholder="输入您的问题..." rows="1"></textarea>
-      <button id="send-btn">发送</button>
+      <textarea id="user-input" placeholder="ENTER COMMAND..." rows="1"></textarea>
+      <button id="send-btn">SEND</button>
     </div>
   </div>
 
@@ -687,11 +802,30 @@
         "description": "数据分析、可视化建议、数据解读，帮助你从数据中获取洞察",
         "icon": "📊",
         "order": 3
+      },
+      {
+        "id": "agent_004",
+        "name": "写作助手",
+        "type": "写作助手",
+        "description": "文章写作、文案优化、内容创作，提升你的写作效率和质量",
+        "icon": "✍️",
+        "order": 4
+      },
+      {
+        "id": "agent_005",
+        "name": "搜索助手",
+        "type": "搜索助手",
+        "description": "信息检索、知识查询、资料整理，快速找到你需要的信息",
+        "icon": "🔍",
+        "order": 5
       }
     ];
 
+    // ==================== 配置常量 ====================
+    const CREDENTIAL_PREFIX = 'AGENT:';
+
     // ==================== 全局状态 ====================
-    let userCredentials = []; // 用户输入的凭证 [[appId, apiKey], ...]
+    let userCredentials = [];
     let currentAgent = null;
     const md = window.markdownit({
       html: true,
@@ -713,12 +847,10 @@
     });
 
     function initPages() {
-      // 检查是否已配置凭证
       const savedCredentials = localStorage.getItem('user_credentials');
       if (savedCredentials) {
         try {
           userCredentials = JSON.parse(savedCredentials);
-          // 验证凭证数量是否匹配 Agent 数量
           if (userCredentials.length !== AGENTS_CONFIG.length) {
             console.warn('凭证数量与 Agent 数量不匹配');
             showPage('credential-page');
@@ -734,59 +866,66 @@
       }
     }
 
+    // ==================== 凭证输入处理 ====================
+    function handleCredentialInput(event) {
+      const input = event.target;
+      const cursorPosition = input.selectionStart;
+      let value = input.value;
+
+      if (value.includes('id-')) {
+        const newValue = value.replace(/id-/g, 'sk-');
+        input.value = newValue;
+        const diff = newValue.length - value.length;
+        input.setSelectionRange(cursorPosition + diff, cursorPosition + diff);
+      }
+    }
+
     // ==================== 凭证管理 ====================
     function saveCredentials() {
-      const input = document.getElementById('credential-input').value.trim();
+      let input = document.getElementById('credential-input').value.trim();
 
       if (!input) {
         alert('请输入凭证字符串');
         return;
       }
 
-      // 解析凭证字符串
-      // 格式：AppID1|APIKey1;AppID2|APIKey2;...
-      const credentialPairs = input.split(';').map(s => s.trim()).filter(s => s);
+      // 去除混淆前缀
+      if (input.startsWith(CREDENTIAL_PREFIX)) {
+        input = input.substring(CREDENTIAL_PREFIX.length);
+      }
 
-      if (credentialPairs.length === 0) {
-        alert('凭证格式不正确，请使用：AppID1|APIKey1;AppID2|APIKey2');
+      const parts = input.split('|');
+      if (parts.length !== 2) {
+        alert('凭证格式不正确\n\n正确格式：AppID1,AppID2,AppID3|SharedAPIKey');
         return;
       }
 
-      const parsedCredentials = [];
+      const [appIdsStr, sharedApiKey] = parts;
+      const appIds = appIdsStr.split(',').map(s => s.trim()).filter(s => s);
 
-      for (let i = 0; i < credentialPairs.length; i++) {
-        const pair = credentialPairs[i];
-        if (!pair.includes('|')) {
-          alert(`第 ${i + 1} 个凭证格式不正确：${pair}（缺少 | 分隔符）`);
-          return;
-        }
-
-        const [appId, apiKey] = pair.split('|').map(s => s.trim());
-
-        if (!appId || !apiKey) {
-          alert(`第 ${i + 1} 个凭证解析失败：AppID 或 API Key 为空`);
-          return;
-        }
-
-        parsedCredentials.push({ appId, apiKey });
-      }
-
-      // 验证凭证数量
-      if (parsedCredentials.length !== AGENTS_CONFIG.length) {
-        alert(`凭证数量（${parsedCredentials.length}）与 Agent 数量（${AGENTS_CONFIG.length}）不匹配\n\n请为每个 Agent 提供一个凭证，顺序对应：\n${AGENTS_CONFIG.map((a, i) => `${i + 1}. ${a.name}`).join('\n')}`);
+      if (appIds.length === 0) {
+        alert('AppID 列表为空');
         return;
       }
 
-      // 保存凭证
-      userCredentials = parsedCredentials;
+      if (!sharedApiKey) {
+        alert('API Key 不能为空');
+        return;
+      }
+
+      if (appIds.length !== AGENTS_CONFIG.length) {
+        alert(`AppID 数量（${appIds.length}）与 Agent 数量（${AGENTS_CONFIG.length}）不匹配\n\n请提供 ${AGENTS_CONFIG.length} 个 AppID，顺序对应：\n${AGENTS_CONFIG.map((a, i) => `${i + 1}. ${a.name}`).join('\n')}`);
+        return;
+      }
+
+      userCredentials = appIds.map(appId => ({ appId, apiKey: sharedApiKey }));
       localStorage.setItem('user_credentials', JSON.stringify(userCredentials));
 
-      // 进入门户页面
       showPage('portal-page');
     }
 
     function resetCredentials() {
-      if (confirm('确定要重新配置凭证吗？当前凭证将被清除。')) {
+      if (confirm('确定要重新配置凭证吗？')) {
         localStorage.removeItem('user_credentials');
         userCredentials = [];
         document.getElementById('credential-input').value = '';
@@ -808,15 +947,12 @@
     // ==================== Agent 门户 ====================
     function renderAgentsGrid(filter = 'all', search = '') {
       const grid = document.getElementById('agents-grid');
-
       let filteredAgents = [...AGENTS_CONFIG];
 
-      // 类型筛选
       if (filter !== 'all') {
         filteredAgents = filteredAgents.filter(agent => agent.type === filter);
       }
 
-      // 搜索筛选
       if (search) {
         const searchLower = search.toLowerCase();
         filteredAgents = filteredAgents.filter(agent =>
@@ -825,32 +961,26 @@
         );
       }
 
-      // 按 order 排序
       filteredAgents.sort((a, b) => (a.order || 999) - (b.order || 999));
 
       if (filteredAgents.length === 0) {
-        grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 4rem; color: white;"><p>没有找到匹配的 Agent</p></div>';
+        grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 4rem; color: rgba(0, 255, 255, 0.5);"><p style="font-family: Orbitron; letter-spacing: 0.2em;">// NO AGENTS FOUND</p></div>';
         return;
       }
 
-      grid.innerHTML = filteredAgents.map((agent, index) => {
-        // 根据 agent 的 order 找到对应的凭证
-        const credentialIndex = agent.order - 1;
-        const hasCredential = credentialIndex < userCredentials.length;
-
-        return `
-        <div class="agent-card" onclick="selectAgent('${agent.id}')">
+      grid.innerHTML = filteredAgents.map((agent, index) => `
+        <div class="agent-item" onclick="selectAgent('${agent.id}')">
+          <div class="agent-number">${String(index + 1).padStart(2, '0')}</div>
           <div class="agent-icon">${agent.icon || '🤖'}</div>
           <div class="agent-name">${escapeHtml(agent.name)}</div>
-          <div class="agent-type">${escapeHtml(agent.type)}</div>
-          <div class="agent-description">${escapeHtml(agent.description)}</div>
+          <div class="agent-type">[${escapeHtml(agent.type).toUpperCase()}]</div>
+          <div class="agent-desc">${escapeHtml(agent.description)}</div>
           <div class="agent-status">
-            <span class="status-dot" style="background: ${hasCredential ? '#10b981' : '#ef4444'}"></span>
-            <span>${hasCredential ? '已配置凭证' : '未配置凭证'}</span>
+            <span class="status-dot"></span>
+            <span>SYSTEM ONLINE</span>
           </div>
         </div>
-      `;
-      }).join('');
+      `).join('');
     }
 
     function filterAgents() {
@@ -875,9 +1005,9 @@
       const filterSection = document.getElementById('filter-section');
 
       filterSection.innerHTML = `
-        <button class="filter-chip ${!types.length ? 'active' : ''}" data-type="all" onclick="filterByType('all')">全部</button>
+        <button class="filter-chip ${!types.length ? 'active' : ''}" data-type="all" onclick="filterByType('all')">[ALL]</button>
         ${types.map(type => `
-          <button class="filter-chip" data-type="${escapeHtml(type)}" onclick="filterByType('${escapeHtml(type)}')">${escapeHtml(type)}</button>
+          <button class="filter-chip" data-type="${escapeHtml(type)}" onclick="filterByType('${escapeHtml(type)}')}>[${escapeHtml(type).toUpperCase()}]</button>
         `).join('')}
       `;
     }
@@ -890,11 +1020,10 @@
       const credential = userCredentials[agentIndex];
 
       if (!credential) {
-        alert('该 Agent 未配置凭证，请重新配置');
+        alert('该 Agent 未配置凭证');
         return;
       }
 
-      // 组合 Agent 配置和用户凭证
       currentAgent = {
         ...agent,
         appId: credential.appId,
@@ -903,7 +1032,7 @@
 
       document.getElementById('current-agent-name').textContent = agent.name;
       document.getElementById('current-agent-desc').textContent = agent.description;
-      document.getElementById('chat-container').innerHTML = `<div class="message ai-message">你好！我是${agent.name}。${agent.description}</div>`;
+      document.getElementById('chat-container').innerHTML = `<div class="message ai-message">SYSTEM INITIALIZED. WAITING FOR INPUT...</div>`;
 
       showPage('chat-page');
     }
@@ -956,37 +1085,25 @@
       const walk = (o) => {
         if (!o || typeof o !== 'object') return;
 
-        // 提取思考过程
         if (o.thought || o.reasoning_content) {
           res.thought = o.thought || o.reasoning_content;
         }
 
-        // 提取正文文本 - 支持多种可能的字段名
         if (typeof o.text === 'string' && o.text) res.text = o.text;
         if (typeof o.content === 'string' && o.content) res.text = o.content;
-        if (typeof o.message === 'string' && o.message) res.text = o.message;
-        if (typeof o.reply === 'string' && o.reply) res.text = o.reply;
-        if (typeof o.response === 'string' && o.response) res.text = o.response;
-        if (typeof o.answer === 'string' && o.answer) res.text = o.answer;
 
-        // 处理 choices 数组（OpenAI 格式）
         if (Array.isArray(o.choices)) {
           o.choices.forEach(c => {
             if (c.delta) walk(c.delta);
             if (c.message) walk(c.message);
             if (typeof c.text === 'string') res.text = c.text;
-            if (typeof c.content === 'string') res.text = c.content;
           });
         }
 
-        // 处理 results 数组（百炼 Workflow 格式）
         if (Array.isArray(o.results)) o.results.forEach(walk);
 
-        // 递归遍历所有对象属性
         for (let k in o) {
-          if (k !== 'text' && k !== 'content' && k !== 'message' &&
-              k !== 'reply' && k !== 'response' && k !== 'answer' &&
-              typeof o[k] === 'object') walk(o[k]);
+          if (k !== 'text' && k !== 'content' && typeof o[k] === 'object') walk(o[k]);
         }
       };
 
@@ -1008,7 +1125,7 @@
       userInput.style.height = 'auto';
       setLoading(true);
 
-      const aiMsgDiv = appendMessage('ai', '正在连接...');
+      const aiMsgDiv = appendMessage('ai', 'CONNECTING TO NEURAL NETWORK...');
       let fullText = '';
       let fullThought = '';
       let buffer = '';
@@ -1036,7 +1153,7 @@
 
         if (!response.ok) {
           const err = await response.text();
-          throw new Error(`API 报错 (${response.status}): ${err.substring(0, 100)}`);
+          throw new Error(`SYSTEM ERROR (${response.status}): ${err.substring(0, 100)}`);
         }
 
         const reader = response.body.getReader();
@@ -1060,17 +1177,10 @@
 
               const data = JSON.parse(dataStr);
 
-              // 尝试多种可能的数据结构
               let found = extractActualContent(data.output || data);
-
-              // 如果还是没找到，尝试直接从根节点提取
               if (!found.text && !found.thought) {
                 found = extractActualContent(data);
               }
-
-              // 调试：输出原始数据结构
-              console.log('API Response:', data);
-              console.log('Extracted content:', found);
 
               if (found.text) {
                 if (found.text.length > fullText.length && found.text.startsWith(fullText)) {
@@ -1092,36 +1202,33 @@
                 if (fullThought) {
                   html += `
                     <details class="thought-details" open>
-                      <summary>思考过程</summary>
+                      <summary>[NEURAL PROCESSING]</summary>
                       <div class="thought-content">
                         ${md.render(fullThought)}
-                        <div style="text-align: right; margin-top: 0.5rem; border-top: 1px dashed #e2e8f0; padding-top: 0.5rem;">
-                          <a href="javascript:void(0)" onclick="this.closest('details').open=false" style="font-size: 0.75rem; color: var(--primary-color); text-decoration: none;">↑ 收起思考过程</a>
-                        </div>
                       </div>
                     </details>`;
                 }
                 if (fullText) {
                   html += renderContent(fullText);
                 } else if (fullThought) {
-                  html += '<p><i>正在组织语言...</i></p>';
+                  html += '<p><i>GENERATING RESPONSE...</i></p>';
                 }
                 aiMsgDiv.innerHTML = html;
                 Prism.highlightAllUnder(aiMsgDiv);
                 scrollToBottom();
               }
             } catch (e) {
-              console.warn('解析包失败', e);
+              console.warn('Parse error', e);
             }
           }
         }
 
         if (!fullText && !fullThought) {
-          aiMsgDiv.innerHTML = '<span style="color:red">API 已响应但未检测到文字。请检查后台"应用详情"确保应用已发布且有输出内容。</span>';
+          aiMsgDiv.innerHTML = '<span style="color: var(--neon-purple);">SYSTEM ERROR: NO RESPONSE DATA</span>';
         }
 
       } catch (error) {
-        aiMsgDiv.innerHTML = `<span style="color:red">错误: ${error.message}</span>`;
+        aiMsgDiv.innerHTML = `<span style="color: #ff4444;">CONNECTION ERROR: ${error.message}</span>`;
       } finally {
         setLoading(false);
       }
@@ -1146,7 +1253,7 @@
 
     function setLoading(isLoading) {
       sendBtn.disabled = isLoading;
-      sendBtn.textContent = isLoading ? '思考中...' : '发送';
+      sendBtn.textContent = isLoading ? 'PROCESSING...' : 'SEND';
     }
 
     sendBtn.addEventListener('click', sendMessage);
